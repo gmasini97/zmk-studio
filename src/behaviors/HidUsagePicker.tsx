@@ -16,7 +16,6 @@ import {
 import {
   hid_usage_from_page_and_id,
   hid_usage_get_labels,
-  hid_usage_get_labels,
   hid_usage_page_get_ids,
   UsageId,
 } from "../hid-usages";
@@ -27,6 +26,10 @@ export interface HidUsagePage {
   id: number;
   min?: number;
   max?: number;
+  onMouseOver?: (mouseOverData: {
+    id: number;
+    i: UsageId;
+  } | null) => void;
 }
 
 export interface HidUsagePickerProps {
@@ -50,7 +53,7 @@ type UsageSectionProps = HidUsagePage;
 const UsageSection = ({ id, min, max }: UsageSectionProps) => {
   const info = useMemo(() => hid_usage_page_get_ids(id), [id]);
 
-  let usages = useMemo(() => {
+  const usages = useMemo(() => {
     let usages = info?.UsageIds || [];
     if (max || min) {
       usages = usages.filter(
@@ -80,10 +83,10 @@ const UsageSection = ({ id, min, max }: UsageSectionProps) => {
   );
 };
 
-const UsageSectionGrid = ({ id, min, max }: UsageSectionProps) => {
+const UsageSectionGrid = ({ id, min, max, onMouseOver }: UsageSectionProps) => {
   const info = useMemo(() => hid_usage_page_get_ids(id), [id]);
 
-  let usages = useMemo(() => {
+  const usages = useMemo(() => {
     let usages = info?.UsageIds || [];
     if (max || min) {
       usages = usages.filter(
@@ -107,9 +110,11 @@ const UsageSectionGrid = ({ id, min, max }: UsageSectionProps) => {
           >
             {({isSelected}) => {
               const labels = hid_usage_get_labels(id, i.Id, { removePrefix: true })
-              console.log(labels)
               return (
-              <div className={`p-2 flex justify-center items-center relative w-full h-full ${isSelected ? 'bg-primary text-white' : ''}`}>
+              <div className={`p-2 flex justify-center items-center relative w-full h-full ${isSelected ? 'bg-primary text-white' : ''}`}
+                onMouseEnter={() => onMouseOver ? onMouseOver({id, i}) : {}}
+                onMouseLeave={() => onMouseOver ? onMouseOver(null) : {}}
+              >
                 <p className="break-words select-none">
                   {labels.short || labels.med || labels.long || i.Name}
                 </p>
@@ -175,7 +180,7 @@ export const HidUsagePicker = ({
   onValueChanged,
 }: HidUsagePickerProps) => {
   const mods = useMemo(() => {
-    let flags = value ? value >> 24 : 0;
+    const flags = value ? value >> 24 : 0;
 
     return all_mods.filter((m) => m & flags).map((m) => m.toLocaleString());
   }, [value]);
@@ -184,7 +189,7 @@ export const HidUsagePicker = ({
     (e: Key | null) => {
       let value = typeof e == "number" ? e : undefined;
       if (value !== undefined) {
-        let mod_flags = mods_to_flags(mods.map((m) => parseInt(m)));
+        const mod_flags = mods_to_flags(mods.map((m) => parseInt(m)));
         value = value | (mod_flags << 24);
       }
 
@@ -199,14 +204,14 @@ export const HidUsagePicker = ({
         return;
       }
 
-      let mod_flags = mods_to_flags(m.map((m) => parseInt(m)));
-      let new_value = mask_mods(value) | (mod_flags << 24);
+      const mod_flags = mods_to_flags(m.map((m) => parseInt(m)));
+      const new_value = mask_mods(value) | (mod_flags << 24);
       onValueChanged(new_value);
     },
-    [value]
+    [value, onValueChanged]
   );
 
-  console.log("A", value ? mask_mods(value) : null)
+  const [tooltipData, setTooltipData] = useState<{ id: number; i: UsageId; } | null>();
 
   return (
     <div>
@@ -258,8 +263,11 @@ export const HidUsagePicker = ({
         onSelectionChange={({currentKey}: any) => selectionChanged(currentKey)}
         aria-labelledby="hid-usage-picker"
       >
-        {({ id, min, max }) => <UsageSectionGrid id={id} min={min} max={max} />}
-      </ListBox>
+        {({ id, min, max }) => <UsageSectionGrid id={id} min={min} max={max} onMouseOver={setTooltipData} />}
+      </ListBox> 
+      <p className="text-sm p-2 text-center h-6">
+        {tooltipData ? tooltipData.i.Name : ""}
+      </p>
     </div>
   );
 };

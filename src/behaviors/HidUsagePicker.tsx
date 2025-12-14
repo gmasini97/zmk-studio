@@ -85,7 +85,6 @@ const UsageSection = ({ id, min, max }: UsageSectionProps) => {
 };
 
 const UsageSectionGrid = ({ id, min, max, onMouseOver }: UsageSectionProps) => {
-  const { keyboard_lang_layout } = useUserPreferences();
   const info = useMemo(() => hid_usage_page_get_ids(id), [id]);
 
   const usages = useMemo(() => {
@@ -110,23 +109,30 @@ const UsageSectionGrid = ({ id, min, max, onMouseOver }: UsageSectionProps) => {
             id={hid_usage_from_page_and_id(id, i.Id)}
             className="bg-white rounded border-2 w-16 h-16 overflow-hidden cursor-pointer hover:scale-150 transition-transform"
           >
-            {({isSelected}) => {
+            {({ isSelected }) => {
+              const { keyboard_lang_layout } = useUserPreferences();
               const labels = hid_usage_get_labels(id, i.Id, { keyboard_lang_layout, removePrefix: true })
               return (
-              <div className={`p-2 flex justify-center items-center relative w-full h-full ${isSelected ? 'bg-primary text-white' : ''}`}
-                onMouseEnter={() => onMouseOver ? onMouseOver({id, i}) : {}}
-                onMouseLeave={() => onMouseOver ? onMouseOver(null) : {}}
-              >
-                <p className="break-words select-none">
-                  {labels.short || labels.med || labels.long || i.Name}
-                </p>
-                {labels.secondary && (
-                  <p className="absolute top-1 right-1 text-xs opacity-80">
-                    {labels.secondary}
+                <div className={`p-2 flex justify-center items-center relative w-full h-full ${isSelected ? 'bg-primary text-white' : ''}`}
+                  onMouseEnter={() => onMouseOver ? onMouseOver({ id, i }) : {}}
+                  onMouseLeave={() => onMouseOver ? onMouseOver(null) : {}}
+                >
+                  <p className="break-words select-none">
+                    {labels.short || labels.med || labels.long || i.Name}
                   </p>
-                )}
-              </div>
-            )}}
+                  {labels.secondary && (
+                    <p className="absolute top-1 right-1 text-xs opacity-80">
+                      {labels.secondary}
+                    </p>
+                  )}
+                  {labels.tertiary && (
+                    <p className="absolute bottom-1 right-1 text-xs opacity-80">
+                      {labels.tertiary}
+                    </p>
+                  )}
+                </div>
+              )
+            }}
           </ListBoxItem>
         )}
       </Collection>
@@ -262,11 +268,11 @@ export const HidUsagePicker = ({
         selectionMode="single"
         className="block max-h-[30vh] min-h-[unset] overflow-auto p-2"
         selectedKeys={value ? [mask_mods(value)] : []}
-        onSelectionChange={({currentKey}: any) => selectionChanged(currentKey)}
+        onSelectionChange={({ currentKey }: any) => selectionChanged(currentKey)}
         aria-labelledby="hid-usage-picker"
       >
         {({ id, min, max }) => <UsageSectionGrid id={id} min={min} max={max} onMouseOver={setTooltipData} />}
-      </ListBox> 
+      </ListBox>
       <p className="text-sm p-2 text-center h-6">
         {tooltipData ? tooltipData.i.Name : ""}
       </p>
